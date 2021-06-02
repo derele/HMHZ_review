@@ -1,0 +1,38 @@
+## devtools::install_github("alicebalard/parasiteLoad", ref = "v2.1")
+library(parasiteLoad)
+library(optimx)
+library(fitdistrplus)
+library(parallel)
+
+library(ggplot2)
+
+# for reproducibility
+set.seed(8)
+
+BAIdata <- read.csv("https://raw.githubusercontent.com/alicebalard/parasiteLoad/master/data/WATWMdata.csv", na.strings = c("", " ", NA))
+# Keep individuals with hybrid index, sex recorded and pinworms counted
+BAIdata <- BAIdata[!is.na(BAIdata$HI) & !is.na(BAIdata$Sex) & !is.na(BAIdata$Aspiculuris.Syphacia),]
+
+# Balard et al. 2020
+BALdata <- read.csv("https://raw.githubusercontent.com/alicebalard/Article_IntensityEimeriaHMHZ/master/data/cleanedData.csv", na.strings = c("", " ", NA))
+# Keep individuals with hybrid index, sex recorded and pinworms counted
+BALdata <- BALdata[!is.na(BALdata$HI) & !is.na(BALdata$Sex) & !is.na(BALdata$Aspiculuris_Syphacia),]
+
+
+
+simulateHybrid <- function(size, L1, L2, alpha, theta){
+    hybind  <-  sample(c(BAIdata$HI, BALdata$HI), size)
+    simdata  <-  data.frame(ID = 1:size, HI =hybind,
+                            Sex = factor(rep(c("female", "male"), size/2)),
+                            meanHere = parasiteLoad::MeanLoad(
+                                                         L1 = L1, L2 = L2,
+                                                         alpha = alpha,
+                                                         hybridIndex =hybind))
+    simdata$load <- sapply(simdata$meanHere, function(x){
+        rnegbin(n = 1, mu = x, theta = theta)
+    })
+    simdata
+}
+
+foo <- simulateHybrid(100, 100, 100, 0.1, 4)
+
