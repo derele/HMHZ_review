@@ -170,5 +170,6 @@ Pow <- ggplot(powerT, aes(Var1, value, color=Var2)) +
 
 
 pdf("power_Fig.pdf")
-(MLC.pm + MLK.pm + MLP.pm)/(FP + Pow)
+(MLC.pm + MLK.pm + MLP.pm)/(FP + Pow) +
+      plot_annotation(tag_levels = 'a')
 dev.off()    
