@@ -9,6 +9,8 @@ library(ggplotify)
 library(pheatmap)
 library(patchwork)
 
+library(reshape2)
+
 # for reproducibility
 set.seed(8)
 
@@ -117,20 +119,56 @@ rownames(MLP) <- sizes
 MLC.pm <- as.ggplot(
     pheatmap(MLC, cluster_rows=F, cluster_cols=F,
              main="Power for Chisq test",
+             legend_breaks = seq(0, 1, by=0.2),
+             legend=FALSE
              )
-)
+) 
 
-##
 
 MLK.pm <- as.ggplot(
     pheatmap(MLK, cluster_rows=F, cluster_cols=F,
-             main="Power Kruskall-Wallis test")
+             main="Power Kruskall-Wallis test",
+             legend_breaks = seq(0, 1, by=0.2),
+             legend=FALSE)
 )
 
 MLP.pm <- as.ggplot(
     pheatmap(MLP, cluster_rows=F, cluster_cols=F,
-             main="Power for Maximum Likelihood estimate")
+             main="Power for Maximum Likelihood estimate",
+             legend_breaks = seq(0, 1, by=0.2),
+             legend_labels = seq(0, 1, by=0.2))
 )
 
 
-MLC.pm + MLK.pm + MLP.pm
+speci <- cbind("Chisq"=MLC[,1], "Kr-Wa"=MLK[,1], "ML"=MLP[,1])
+speci <-  melt(speci)
+
+
+FP <- ggplot(speci, aes(Var1, value, color=Var2)) +
+    geom_point() + 
+    scale_y_continuous("False positive proportion")+
+    scale_x_continuous("Sample size")+
+    geom_line()+    
+    theme_minimal() +
+    theme(legend.position = "none") 
+
+powerT <- rbind(
+    cbind("Chisq"=MLC[c(1), -1], "Kr-Wa"=MLK[c(1), -1], "ML"=MLP[c(1), -1]),
+    cbind("Chisq"=MLC[c(6), -1], "Kr-Wa"=MLK[c(6), -1], "ML"=MLP[c(6), -1])
+)
+
+powerT <-  reshape2::melt(powerT)
+powerT$Ssize <- rep(rep(c(100, 600), each=10), times=3)
+
+Pow <- ggplot(powerT, aes(Var1, value, color=Var2)) +
+    geom_point() + 
+    scale_y_continuous("Power (prop. true positives)")+
+    scale_x_continuous("Effect size")+
+    facet_wrap(~Ssize) +
+    geom_line()+
+    theme_minimal()
+
+
+pdf("power_Fig.pdf")
+(MLC.pm + MLK.pm + MLP.pm)/(FP + Pow)
+dev.off()    
