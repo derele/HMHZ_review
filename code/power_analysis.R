@@ -118,7 +118,7 @@ rownames(MLP) <- sizes
 
 MLC.pm <- as.ggplot(
     pheatmap(MLC, cluster_rows=F, cluster_cols=F,
-             main="Power for Chisq test",
+             main="Power Chisq test",
              legend_breaks = seq(0, 1, by=0.2),
              legend=FALSE
              )
@@ -134,7 +134,7 @@ MLK.pm <- as.ggplot(
 
 MLP.pm <- as.ggplot(
     pheatmap(MLP, cluster_rows=F, cluster_cols=F,
-             main="Power for Maximum Likelihood estimate",
+             main="Power Maximum Likelihood estimate",
              legend_breaks = seq(0, 1, by=0.2),
              legend_labels = seq(0, 1, by=0.2))
 )
@@ -169,7 +169,7 @@ Pow <- ggplot(powerT, aes(Var1, value, color=Var2)) +
     theme_minimal()
 
 
-pdf("power_Fig.pdf")
+pdf("power_Fig.pdf", width=12, height=8)
 (MLC.pm + MLK.pm + MLP.pm)/(FP + Pow) +
       plot_annotation(tag_levels = 'a')
 dev.off()    
