@@ -4,10 +4,12 @@ library(optimx)
 library(fitdistrplus)
 library(parallel)
 
+library(ggplot2)
+
 # for reproducibility
 set.seed(8)
 
-######################################
+>######################################
 ### Load data from the 4 field studies
 ### For Sage et al. and Moulia et al.: extract negbin parameters for simulation of bigger study
 
@@ -49,91 +51,101 @@ BALdata <- BALdata[!is.na(BALdata$HI) & !is.na(BALdata$Sex) & !is.na(BALdata$Asp
 
 ### -> to do from there: BS
 
-make_data_shuffle <- function(){
-  ## Sage et al: simulate N=100, simulate N=600
-  SAG100_df <- data.frame(HI = sample(seq(0,1, 0.001), size = 100),
-                          load = rnegbin(n = 100, mu = fitSAG$estimate[["mu"]], theta = fitSAG$estimate[["size"]]),
-                          Sex = as.factor(sample(rep(c("F", "M"), 1000), size = 100)))
-  SAG600_df <- data.frame(HI = sample(seq(0,1, 0.001), size = 600),
-                          load = rnegbin(n = 600, mu = fitSAG$estimate[["mu"]], theta = fitSAG$estimate[["size"]]),
-                          Sex = as.factor(sample(rep(c("F", "M"), 1000), size = 600)))
-  ## Moulia et al: simulate N=100 & N=600
-  MOU100_df <- data.frame(HI = sample(seq(0,1, 0.001), size = 100),
-                          load = rnegbin(n = 100, mu = fitMOU$estimate[["mu"]], theta = fitMOU$estimate[["size"]]),
-                          Sex = as.factor(sample(rep(c("F", "M"), 1000), size = 100)))
-  MOU600_df <- data.frame(HI = sample(seq(0,1, 0.001), size = 600),
-                          load = rnegbin(n = 600, mu = fitMOU$estimate[["mu"]], theta = fitMOU$estimate[["size"]]),
-                          Sex = as.factor(sample(rep(c("F", "M"), 1000), size = 600)))
-  ## Baird et al: subsample N=100 & N=600
-  BAI100_df <- data.frame(HI = sample(BAIdata$HI, size = 100), 
-                          load = sample(BAIdata$Aspiculuris.Syphacia, size = 100),
-                          Sex = as.factor(sample(factor(BAIdata$Sex), size = 100)))
-  BAI600_df <- data.frame(HI = sample(BAIdata$HI, size = 600), 
-                          load = sample(BAIdata$Aspiculuris.Syphacia, size = 600),
-                          Sex = as.factor(sample(factor(BAIdata$Sex), size = 600)))
-  ## Balard et al: subsample N=100 & N=600 (585 for BAL)
-  BAL100_df <- data.frame(HI = sample(BALdata$HI, size = 100), 
-                          load = sample(BALdata$Aspiculuris_Syphacia, size = 100),
-                          Sex = as.factor(sample(factor(BALdata$Sex), size = 100)))
-  BAL585_df <- data.frame(HI = sample(BALdata$HI, size = 585), 
-                          load = sample(BALdata$Aspiculuris_Syphacia, size = 585),
-                          Sex = as.factor(sample(factor(BALdata$Sex), size = 585)))
-  return(list(SAG100_df = SAG100_df, SAG600_df = SAG600_df, 
-              MOU100_df = MOU100_df, MOU600_df = MOU600_df, 
-              BAI100_df = BAI100_df, BAI600_df = BAI600_df, 
-              BAL100_df = BAL100_df, BAL585_df = BAL585_df))
+make_data_shuffle <- function(size=100, mu = 90, theta = 0.5, real.data=FALSE){
+    if(isFALSE(real.data)) {
+        df <- data.frame(HI = sample(seq(0,1, 0.001), size = size),
+                         load = rnegbin(n = 100, mu = mu,   theta = theta),
+                         Sex = as.factor(sample(rep(c("F", "M"), 1000), size = size)))
+        return(df)
+    }
+    if(isTRUE(real.data)) {
+        ## Sage et al: simulate N=100, simulate N=600
+        SAG100_df <- data.frame(HI = sample(seq(0,1, 0.001), size = 100),
+                                load = rnegbin(n = 100, mu = fitSAG$estimate[["mu"]],
+                                               theta = fitSAG$estimate[["size"]]),
+                                Sex = as.factor(sample(rep(c("F", "M"), 1000), size = 100)))
+        SAG600_df <- data.frame(HI = sample(seq(0,1, 0.001), size = 600),
+                                load = rnegbin(n = 600, mu = fitSAG$estimate[["mu"]],
+                                               theta = fitSAG$estimate[["size"]]),
+                                Sex = as.factor(sample(rep(c("F", "M"), 1000), size = 600)))
+        ## Moulia et al: simulate N=100 & N=600
+        MOU100_df <- data.frame(HI = sample(seq(0,1, 0.001), size = 100),
+                                load = rnegbin(n = 100, mu = fitMOU$estimate[["mu"]],
+                                               theta = fitMOU$estimate[["size"]]),
+                                Sex = as.factor(sample(rep(c("F", "M"), 1000), size = 100)))
+        MOU600_df <- data.frame(HI = sample(seq(0,1, 0.001), size = 600),
+                                load = rnegbin(n = 600, mu = fitMOU$estimate[["mu"]],
+                                               theta = fitMOU$estimate[["size"]]),
+                                Sex = as.factor(sample(rep(c("F", "M"), 1000), size = 600)))
+        ## Baird et al: subsample N=100 & N=600
+        BAI100_df <- data.frame(HI = sample(BAIdata$HI, size = 100), 
+                                load = sample(BAIdata$Aspiculuris.Syphacia, size = 100),
+                                Sex = as.factor(sample(factor(BAIdata$Sex), size = 100)))
+        BAI600_df <- data.frame(HI = sample(BAIdata$HI, size = 600), 
+                                load = sample(BAIdata$Aspiculuris.Syphacia, size = 600),
+                                Sex = as.factor(sample(factor(BAIdata$Sex), size = 600)))
+        ## Balard et al: subsample N=100 & N=600 (585 for BAL)
+        BAL100_df <- data.frame(HI = sample(BALdata$HI, size = 100), 
+                                load = sample(BALdata$Aspiculuris_Syphacia, size = 100),
+                                Sex = as.factor(sample(factor(BALdata$Sex), size = 100)))
+        BAL585_df <- data.frame(HI = sample(BALdata$HI, size = 585), 
+                                load = sample(BALdata$Aspiculuris_Syphacia, size = 585),
+                                Sex = as.factor(sample(factor(BALdata$Sex), size = 585)))
+        return(list(SAG100_df = SAG100_df, SAG600_df = SAG600_df, 
+                    MOU100_df = MOU100_df, MOU600_df = MOU600_df, 
+                    BAI100_df = BAI100_df, BAI600_df = BAI600_df, 
+                    BAL100_df = BAL100_df, BAL585_df = BAL585_df))
+    }
 }
 
 ######################################
 # Apply the three test on each df:
-runTests <- function(df){
-  ## Test 1: chi2 wormy VS non wormy, cut at 250, hybrids 12.5% < HI < 87.5%
-    chi2df <- data.frame(wormy = c(hybrid=length(df[df$load>250 &
-                                                    df$HI > 0.125 &
-                                                    df$HI < 0.875,]),
-                                   pure=length(df[df$load>250 &
-                                                  (df$HI < 0.125 |
-                                                   df$HI > 0.875),])),
-                         normal=c(hybrid=length(df[df$load<=250 &
-                                                   df$HI > 0.125 &
-                                                   df$HI < 0.875,]), 
-                                  pure=length(df[df$load<=250 &
-                                                 (df$HI < 0.125 |
-                                                  df$HI > 0.875),]))) 
-    chi2 <- chisq.test(chi2df) # they found 9.6, df=1, p <0.005
-  
+runTests <- function(df, which=c(1, 2, 3)){
+    results <- list()
+    if(1%in%which) {
+        ## Test 1: chi2 wormy VS non wormy, cut at 250, hybrids 12.5% < HI < 87.5%
+        ## 250 is the ~ 0.9 quantile, better doing 0.8 for more power
+        chi2 <- chisq.test(df$load>quantile(df$load,0.8),
+                           df$HI<0.125|df$HI>0.875)
+        results["chi2"]  <- chi2$p.value
+    }
     ## Test 2: kruskal-Wallis test on load, 20% < HI < 60%
-    df$genotype <- "Hybrid"
-    df$genotype[df$HI < 0.2] <- "Mmd"
-    df$genotype[df$HI > 0.6] <- "Mmm"
-    KW <- kruskal.test(load ~ genotype, data = df)
-  
-  ## Test 3: maximum likelihood estimation and LRT, H0 (no diff in sex and both sides)
-    ML <- parasiteLoad::analyse(data = df, response = "load", model = "negbin",
-                                group = "Sex", hybridIndex = "HI")
-  
-    results = list(chi2 = chi2$p.value, KW = KW$p.value, ML = ML$H0$Gtest$pvalue)
+    if(2%in%which) {
+        df$genotype <- "Hybrid"
+        df$genotype[df$HI < 0.2] <- "Mmd"
+        df$genotype[df$HI > 0.6] <- "Mmm"
+        KW <- kruskal.test(load ~ genotype, data = df)
+        results["KW"] <- KW$p.value
+    }
+    ## Test 3: maximum likelihood estimation and LRT, H0 (no diff in sex and both sides)
+    if(3%in%which) {
+        ML <- parasiteLoad::analyse(data = df, response = "load", model = "negbin",
+                                    group = "Sex", hybridIndex = "HI")
+        results["ML"] <- ML$H0$Gtest$pvalue
+    }
     return(results)
 }
 
+
+
 mybootstrap <- function(numBS){
-    ## shuffled_data <- lapply(1:numBS, function(i) make_data_shuffle())
-    ## BS function
     mclapply(1:numBS, function(i) {
         d <- make_data_shuffle()
-        lapply(d, runTests)
+        lapply(d, runTests, c(1,2))
     }, mc.cores=64)
 }
 
 numBS=100
 
-system.time(
 try <- mybootstrap(numBS)
-)
-# user  system elapsed 
-# 260.088   0.178 260.212 
 
-resultsDF <- do.call(rbind, lapply(try, unlist))
+
+## resultsDF <-  do.call(rbind, lapply(try, unlist))
+
+resultsDF <- reshape::melt(try)
+
+tapply(resultsDF$value, list(resultsDF$L3, resultsDF$L2) ,
+       function(x) length(x[x<0.05]))
 
 head(resultsDF)
 
@@ -142,3 +154,6 @@ pheatmap(resultsDF)
 write.csv(x = resultsDF,
           file = "/home/alice/Desktop/Git/Article3_review/output/resultsDF.csv",
           quote = "F")
+
+
+## 240 F2 with HI->rbinom(240, 40, 0.5)/40 + 48 HI = 0 and 48 HI = 1
